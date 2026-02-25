@@ -1,44 +1,33 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http; // Required for http.Client()
+import 'package:get/get.dart';
+import 'package:http/http.dart' as http;
 
-// Core
 import 'core/network/api_service.dart';
-
-// Data
 import 'data/repositories/user_repository_impl.dart';
-
-// Domain
+import 'domain/usecases/get_user_by_id.dart';
 import 'domain/usecases/get_users.dart';
-
-// Presentation
 import 'presentation/controllers/user_controller.dart';
-import 'presentation/screens/user_screen.dart';
+import 'presentation/screens/user_list_screen.dart';
 
 void main() {
-  // 1. Initialize the HTTP Client
-  final httpClient = http.Client();
-
-  // 2. Setup Dependency Injection
-  final apiService = ApiService(httpClient);
+  final apiService = ApiService(http.Client());
   final repository = UserRepositoryImpl(apiService);
-  final getUsersUseCase = GetUsers(repository);
-  final controller = UserController(getUsersUseCase);
+  final getUsers = GetUsers(repository);
+  final getUserById = GetUserById(repository);
 
-  runApp(MyApp(controller: controller));
+  Get.put(UserController(getUsers, getUserById));
+
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  final UserController controller;
-
-  const MyApp({super.key, required this.controller});
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'API Error Handling Demo',
-      theme: ThemeData(primarySwatch: Colors.blue),
-      home: UserScreen(controller: controller),
+    return GetMaterialApp(
       debugShowCheckedModeBanner: false,
+      home: UserListScreen(),
     );
   }
 }

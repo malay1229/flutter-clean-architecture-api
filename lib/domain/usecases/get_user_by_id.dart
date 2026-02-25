@@ -1,12 +1,12 @@
 import '../entities/user.dart';
 import '../repositories/user_repository.dart';
 
-class GetUsers {
+class GetUserById {
   final UserRepository repository;
 
-  GetUsers(this.repository);
+  GetUserById(this.repository);
 
-  Future<List<User>> call() {
-    return repository.getUsers();
+  Future<User> call(int id) {
+    return repository.getUserById(id);
   }
 }

@@ -1,12 +1,25 @@
-class User {
-  final int id; // User ID
-  final String name; // User name
-  final String email; // User email
+// PURE Dart entity.
+// No Flutter imports.
+// No JSON logic.
 
-  // Constructor
+class User {
+  final int id;
+  final String name;
+  final String username;
+  final String email;
+  final String phone;
+  final String website;
+  final String companyName;
+  final String address;
+
   User({
     required this.id,
     required this.name,
+    required this.username,
     required this.email,
+    required this.phone,
+    required this.website,
+    required this.companyName,
+    required this.address,
   });
 }
