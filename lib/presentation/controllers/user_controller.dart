@@ -62,4 +62,9 @@ class UserController extends GetxController {
       loading.value = false;
     }
   }
+
+  void clearSelectedUser() {
+    selectedUser.value = null;
+    userDetailError.value = '';
+  }
 }
