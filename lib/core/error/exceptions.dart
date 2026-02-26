@@ -1,49 +1,52 @@
-// Every exception carries its own user-friendly message.
-// Screens NEVER define error messages. They come from here.
+// app_exceptions.dart
 
-class NoInternetException implements Exception {
-  final String message = "No internet connection. Please check your network.";
+abstract class AppException implements Exception {
+  final String message;
+  final String? details;
+
+  AppException(this.message, [this.details]);
+
+  @override
+  String toString() => "AppException: $message ${details ?? ''}";
 }
 
-class TimeoutException implements Exception {
-  final String message = "The request timed out. Please try again.";
+class NoInternetException extends AppException {
+  NoInternetException([String? details])
+      : super("No internet connection. Please check your network.", details);
 }
 
-class BadRequestException implements Exception {
-  final String message = "Something went wrong with the request.";
+class DeadlineExceededException extends AppException {
+  DeadlineExceededException([String? details])
+      : super("The request timed out. Please try again.", details);
 }
 
-class UnauthorizedException implements Exception {
-  final String message = "You are not authorized.";
+class BadRequestException extends AppException {
+  BadRequestException([String? details])
+      : super("Something went wrong with the request.", details);
 }
 
-class ForbiddenException implements Exception {
-  final String message = "Access denied.";
+class UnauthorizedException extends AppException {
+  UnauthorizedException([String? details])
+      : super("You are not authorized. Please log in again.", details);
 }
 
-class NotFoundException implements Exception {
-  final String message = "The requested data could not be found.";
+class NotFoundException extends AppException {
+  NotFoundException([String? details])
+      : super("The requested data could not be found.", details);
 }
 
-class ServerException implements Exception {
-  final String message = "Server error. Please try later.";
+class ServerException extends AppException {
+  ServerException([String? details])
+      : super("Server error. Please try again later.", details);
 }
 
-class ServiceUnavailableException implements Exception {
-  final String message = "Service is currently unavailable.";
+class InvalidResponseException extends AppException {
+  InvalidResponseException([String? details])
+      : super("Received invalid data from the server.", details);
 }
 
-class UnexpectedStatusException implements Exception {
+class UnexpectedStatusException extends AppException {
   final int statusCode;
-  UnexpectedStatusException(this.statusCode);
-
-  String get message => "Unexpected error occurred (code: $statusCode)";
-}
-
-class InvalidResponseException implements Exception {
-  final String message = "Received invalid data from server.";
-}
-
-class UnknownException implements Exception {
-  final String message = "An unexpected error occurred.";
+  UnexpectedStatusException(this.statusCode, [String? details])
+      : super("Unexpected error (Code: $statusCode)", details);
 }

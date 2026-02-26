@@ -1,74 +1,58 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-
 import 'package:http/http.dart' as http;
-import 'package:connectivity_plus/connectivity_plus.dart';
-
 import '../error/exceptions.dart';
 
-class ApiService {
-  final http.Client client; // Injected HTTP client
+abstract class BaseApi {
+  dynamic handleResponse(http.Response response) {
+    switch (response.statusCode) {
+      case 200:
+      case 201:
+        if (response.body.isEmpty) throw InvalidResponseException();
+        return jsonDecode(response.body);
+      case 400: throw BadRequestException();
+      case 401: throw UnauthorizedException();
+      case 404: throw NotFoundException();
+      case 500: throw ServerException();
+      default:
+        throw UnexpectedStatusException(response.statusCode);
+    }
+  }
 
+  Exception mapException(Object e) {
+    // If it's already one of our custom exceptions, return it as is
+    if (e is AppException) return e;
+
+    if (e is SocketException || e is http.ClientException) {
+      return NoInternetException(e.toString());
+    } else if (e is TimeoutException) {
+      return DeadlineExceededException(e.toString());
+    } else if (e is FormatException) {
+      return InvalidResponseException(e.toString());
+    }
+    return InvalidResponseException("Unknown error: ${e.toString()}");
+  }
+}
+
+class ApiService extends BaseApi {
+  final http.Client client;
   ApiService(this.client);
 
-  Future<dynamic> get(String url) async {
-    // 1️⃣ Check internet connectivity first
-    final connectivityResult = await Connectivity().checkConnectivity();
-    if (connectivityResult == ConnectivityResult.none) {
-      throw NoInternetException();
-    }
-
+  Future<T> get<T>({
+    required String url,
+    required T Function(dynamic json) fromJson,
+  }) async {
     try {
-      // 2️⃣ Perform GET with 10 second timeout
       final response = await client
           .get(Uri.parse(url))
           .timeout(const Duration(seconds: 10));
 
-      // 3️⃣ Handle status codes centrally
-      return _handleResponse(response);
-    } on SocketException {
-      throw NoInternetException();
-    } on http.ClientException {
-      throw NoInternetException();
-    } on FormatException {
-      throw InvalidResponseException();
-    } on Exception {
-      throw UnknownException();
-    }
-  }
+      final decodedData = handleResponse(response);
+      return fromJson(decodedData);
 
-  dynamic _handleResponse(http.Response response) {
-    switch (response.statusCode) {
-      case 200:
-      case 201:
-        if (response.body.isEmpty) {
-          throw InvalidResponseException();
-        }
-        return jsonDecode(response.body);
-
-      case 400:
-        throw BadRequestException();
-
-      case 401:
-        throw UnauthorizedException();
-
-      case 403:
-        throw ForbiddenException();
-
-      case 404:
-        throw NotFoundException();
-
-      case 408:
-        throw TimeoutException();
-
-      case 500:
-        throw ServerException();
-
-      case 503:
-        throw ServiceUnavailableException();
-
-      default:
-        throw UnexpectedStatusException(response.statusCode);
+    } catch (e, stackTrace) {
+      Error.throwWithStackTrace(mapException(e), stackTrace);
     }
   }
 }

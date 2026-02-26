@@ -10,19 +10,19 @@ class UserRepositoryImpl implements UserRepository {
 
   @override
   Future<List<User>> getUsers() async {
-    final data = await apiService
-        .get("https://jsonplaceholder.typicode.com/users");
-
-    return (data as List)
-        .map((json) => UserModel.fromJson(json))
-        .toList();
+    return await apiService.get(
+        url: "https://jsonplaceholder.typicode.com/users",
+        fromJson: (json) => (json as List)
+        .map((item) => UserModel.fromJson(item))
+        .toList(),
+    );
   }
 
   @override
   Future<User> getUserById(int id) async {
-    final data = await apiService
-        .get("https://jsonplaceholder.typicode.com/users/$id");
-
-    return UserModel.fromJson(data);
+    return await apiService.get(
+      url: "https://jsonplaceholder.typicode.com/users/$id",
+      fromJson: (json) => UserModel.fromJson(json),
+    );
   }
 }

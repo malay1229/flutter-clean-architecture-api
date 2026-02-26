@@ -1,5 +1,4 @@
 import 'package:get/get.dart';
-
 import '../../core/error/exceptions.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/usecases/get_user_by_id.dart';
@@ -11,62 +10,56 @@ class UserController extends GetxController {
 
   UserController(this.getUsersUsecase, this.getUserByIdUsecase);
 
-  RxBool isLoading = false.obs;
-  RxString errorMessage = ''.obs;
-  RxList<User> users = <User>[].obs;
-  Rx<User?> selectedUser = Rx<User?>(null);
+  // Separate loading states — no more race conditions
+  final RxBool isUsersLoading = false.obs;
+  final RxBool isUserDetailLoading = false.obs;
+
+  final RxString usersError = ''.obs;
+  final RxString userDetailError = ''.obs;
+
+  final RxList<User> users = <User>[].obs;
+  final Rx<User?> selectedUser = Rx<User?>(null);
 
   Future<void> fetchUsers() async {
-    try {
-      isLoading.value = true;
-      errorMessage.value = '';
-
-      final result = await getUsersUsecase();
-      users.assignAll(result);
-    }
-    catch (e) {
-      if (e is NoInternetException) {
-        errorMessage.value = e.message;
-      } else if (e is TimeoutException) {
-        errorMessage.value = e.message;
-      } else if (e is BadRequestException) {
-        errorMessage.value = e.message;
-      } else if (e is UnauthorizedException) {
-        errorMessage.value = e.message;
-      } else if (e is ForbiddenException) {
-        errorMessage.value = e.message;
-      } else if (e is NotFoundException) {
-        errorMessage.value = e.message;
-      } else if (e is ServerException) {
-        errorMessage.value = e.message;
-      } else if (e is ServiceUnavailableException) {
-        errorMessage.value = e.message;
-      } else if (e is UnexpectedStatusException) {
-        errorMessage.value = e.message;
-      } else if (e is InvalidResponseException) {
-        errorMessage.value = e.message;
-      } else if (e is UnknownException) {
-        errorMessage.value = e.message;
-      } else {
-        errorMessage.value = "Unexpected error occurred.";
-      }
-    }
-    finally {
-      isLoading.value = false;
-    }
+    _runGuarded(
+      loading: isUsersLoading,
+      error: usersError,
+      action: () async {
+        final result = await getUsersUsecase();
+        users.assignAll(result);
+      },
+    );
   }
 
   Future<void> fetchUserById(int id) async {
-    try {
-      isLoading.value = true;
-      errorMessage.value = '';
+    _runGuarded(
+      loading: isUserDetailLoading,
+      error: userDetailError,
+      action: () async {
+        final result = await getUserByIdUsecase(id);
+        selectedUser.value = result;
+      },
+    );
+  }
 
-      final result = await getUserByIdUsecase(id);
-      selectedUser.value = result;
+  /// Single unified execution wrapper — DRY, consistent, and type-safe
+  Future<void> _runGuarded({
+    required RxBool loading,
+    required RxString error,
+    required Future<void> Function() action,
+  }) async {
+    try {
+      loading.value = true;
+      error.value = '';
+      await action();
+    } on AppException catch (e) {
+      // All your custom exceptions are AppException — one catch handles all
+      error.value = e.message;
     } catch (e) {
-      errorMessage.value = e.toString();
+      // True unknown — something not from your error layer
+      error.value = "An unexpected error occurred.";
     } finally {
-      isLoading.value = false;
+      loading.value = false;
     }
   }
 }
